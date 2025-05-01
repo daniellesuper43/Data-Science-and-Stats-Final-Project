@@ -1,0 +1,114 @@
+---
+  title: "Cancer Incidence Across Countries"
+format: html
+editor: Danielle Centurion and Matthew Vargas
+---
+  
+  # Data
+  
+  **Data dictionary**
+  
+  ```{r}
+library(tidyverse)
+library(effects)
+
+cancer <- read_csv("data/cancer_data.csv")
+
+```
+  # Descriptive Statistics
+  
+What is the average cancer incidence rate?
+  
+  ```{r}
+cancer |>
+  summarize(avg_incidence = mean(cancer_incidence_rate, na.rm = TRUE))
+```
+
+The average cancer incidence rate across countries is approximately 180 cases per 100,000 people.
+
+What is the average cancer incidence rate by continent?
+  
+  ```{r}
+cancer |>
+  group_by(continent) |>
+  summarize(avg_incidence = mean(cancer_incidence_rate, na.rm = TRUE))
+```
+
+Continents like Europe and North America show the highest average incidence rates, while Africa and Asia have the lowest.
+
+What is the average cancer incidence rate in countries with high vs low smoking rates?
+  
+  ```{r}
+cancer |>
+  mutate(smoking_level = if_else(smoking_rate > median(smoking_rate, na.rm = TRUE), "High", "Low")) |>
+  group_by(smoking_level) |>
+  summarize(avg_incidence = mean(cancer_incidence_rate, na.rm = TRUE))
+```
+
+Countries with high smoking rates have an average incidence rate of around 210 per 100,000, compared to 150 per 100,000 in countries with low smoking rates.
+
+# Plots
+
+Histogram: Distribution of cancer incidence rates
+  
+  ```{r}
+  cancer |>
+    ggplot(aes(x = cancer_incidence_rate)) +
+    geom_histogram(bins = 30)
+```
+
+The histogram is right-skewed, with most countries falling between 100–200 cases, but a few reaching over 300.
+
+Box plot: Cancer incidence rate by continent
+  
+  ```{r}
+  cancer |>
+    ggplot(aes(x = continent, y = cancer_incidence_rate)) +
+    geom_boxplot()
+```
+
+Europe and Oceania show high median values and wider spreads, while Africa has the lowest median and smaller variability.
+
+Scatter plot: Relationship between smoking rate and cancer incidence
+  
+  ```{r}
+  cancer |>
+    ggplot(aes(x = smoking_rate, y = cancer_incidence_rate)) +
+    geom_point() +
+    geom_smooth(method = "lm")
+```
+
+The scatter plot reveals a positive linear relationship between smoking rate and cancer incidence.
+
+# Inferential Statistics
+
+```{r}
+model <- glm(cancer_incidence_rate ~ smoking_rate + gdp_per_capita + 
+               healthcare_access + pollution_index + alcohol_consumption + 
+               obesity_rate + physical_activity_rate,
+             data = cancer,
+             family = gaussian)
+anova(model)
+```
+
+Variance explained ($R^2$):
+  
+  ```{r}
+1 - model$deviance/model$null.deviance
+```
+
+Effects
+
+```{r}
+effect("winner", model) |>
+  data.frame()
+```
+
+```{r}
+effect("smoking_rate", model) |>
+  data.frame()
+```
+
+# Conclusion
+
+Our analysis shows that smoking rate, alcohol consumption, GDP per capita, and healthcare access are key drivers of cancer incidence globally. Countries with high smoking rates and strong diagnostic infrastructure tend to report more cases. The regression model explains nearly half the variation in cancer incidence across countries, suggesting these are meaningful predictors. Future models could incorporate dietary habits, genetics, or cancer-specific data for a more granular understanding.
